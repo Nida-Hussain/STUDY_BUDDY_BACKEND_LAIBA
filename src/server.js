@@ -8,7 +8,6 @@ import summaryRoutes from './routes/summaryRoutes.js';
 import quizRoutes from './routes/quizRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
-import serverless from 'serverless-http';
 
 dotenv.config();
 
@@ -26,26 +25,23 @@ app.get('/', (req, res) => res.send('StudyBuddy AI API Running'));
 
 app.use(errorHandler);
 
-// ✅ Vercel handler with lazy database connection
+// ✅ Vercel serverless handler with lazy DB connection
 let dbConnected = false;
-const serverlessApp = serverless(app);
 
-export default async function handler(event, context) {
+const handler = async (req, res) => {
   if (!dbConnected) {
     try {
       await connectDB();
       dbConnected = true;
-      console.log('Database connected successfully');
     } catch (err) {
       console.error('Database connection failed:', err.message);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Database connection error' })
-      };
+      return res.status(500).json({ message: 'Database connection error' });
     }
   }
-  return serverlessApp(event, context);
-}
+  return app(req, res);
+};
+
+export default handler;
 
 // ✅ Local development
 if (process.env.NODE_ENV !== 'production') {
